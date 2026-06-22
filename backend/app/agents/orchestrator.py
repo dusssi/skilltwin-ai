@@ -9,6 +9,10 @@ from app.memory.memory_manager import (
     MemoryManager
 )
 
+from app.tools.registry import (
+    ToolRegistry
+)
+
 
 class OrchestratorAgent:
 
@@ -20,13 +24,17 @@ class OrchestratorAgent:
             MemoryManager()
         )
 
+        self.registry = (
+            ToolRegistry()
+        )
+
     def run(
         self,
         user_id: str,
         goal: str
     ) -> AgentState:
 
-        # Load Memory
+        # Load Existing Memory
         memory = self.memory_manager.load_memory(
             user_id
         )
@@ -35,15 +43,51 @@ class OrchestratorAgent:
 
             goal = memory.goal
 
-        # Create State
+        # Create Runtime State
         state = AgentState(
             user_goal=goal
         )
 
-        # Generate Plan
+        # Create Plan
         state = self.planner.create_plan(
             state
         )
+
+        # Execute Tools
+
+        skill_tool = self.registry.get_tool(
+            "skill_tool"
+        )
+
+        roadmap_tool = self.registry.get_tool(
+            "roadmap_tool"
+        )
+
+        project_tool = self.registry.get_tool(
+            "project_tool"
+        )
+
+        skills = skill_tool.execute(
+            state.user_goal
+        )
+
+        roadmap = roadmap_tool.execute(
+            state.user_goal
+        )
+
+        projects = project_tool.execute(
+            state.user_goal
+        )
+
+        # Store Tool Results
+        state.tool_results = {
+
+            "skills": skills,
+
+            "roadmap": roadmap,
+
+            "projects": projects
+        }
 
         # Save Memory
         memory_record = MemoryRecord(
@@ -60,7 +104,8 @@ class OrchestratorAgent:
         # Generate Response
         state.final_response = (
             f"Goal: {state.user_goal}\n\n"
-            f"Plan Generated Successfully"
+            f"Skills:\n{skills}\n\n"
+            f"Projects:\n{projects}"
         )
 
         return state

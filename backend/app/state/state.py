@@ -29,6 +29,11 @@ class AgentState(BaseModel):
         default_factory=list
     )
 
+    # Tool outputs
+    tool_results: dict = Field(
+        default_factory=dict
+    )
+
     # Final answer returned to user
     final_response: str = ""
 
