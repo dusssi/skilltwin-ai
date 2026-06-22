@@ -13,6 +13,10 @@ from app.agents.specialist.registry import (
     AgentRegistry
 )
 
+from app.sessions.session_manager import (
+    SessionManager
+)
+
 
 class OrchestratorAgent:
 
@@ -28,27 +32,59 @@ class OrchestratorAgent:
             AgentRegistry()
         )
 
+        self.session_manager = (
+            SessionManager()
+        )
+
     def run(
         self,
         user_id: str,
+        session_id: str,
         goal: str
     ) -> AgentState:
 
+        # Create / Load Session
+
+        session = self.session_manager.get_session(
+            session_id
+        )
+
+        if session is None:
+
+            session = (
+                self.session_manager.create_session(
+                    session_id,
+                    user_id
+                )
+            )
+
+        # Store User Message
+
+        self.session_manager.add_message(
+            session_id,
+            goal
+        )
+
         # Load Existing Memory
+
         memory = self.memory_manager.load_memory(
             user_id
         )
 
-        if memory:
+        # Only use memory if goal is empty
+
+        if memory and not goal:
 
             goal = memory.goal
 
         # Create Runtime State
+
         state = AgentState(
             user_goal=goal
         )
 
         # Create Plan
+
         state = self.planner.create_plan(
             state
         )
@@ -110,6 +146,13 @@ class OrchestratorAgent:
             f"Skills:\n{skills}\n\n"
             f"Roadmap:\n{roadmap}\n\n"
             f"Projects:\n{projects}"
+        )
+
+        # Store Assistant Response In Session
+
+        self.session_manager.add_message(
+            session_id,
+            state.final_response
         )
 
         return state
