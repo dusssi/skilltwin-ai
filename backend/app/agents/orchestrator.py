@@ -9,8 +9,8 @@ from app.memory.memory_manager import (
     MemoryManager
 )
 
-from app.tools.registry import (
-    ToolRegistry
+from app.agents.specialist.registry import (
+    AgentRegistry
 )
 
 
@@ -24,8 +24,8 @@ class OrchestratorAgent:
             MemoryManager()
         )
 
-        self.registry = (
-            ToolRegistry()
+        self.agent_registry = (
+            AgentRegistry()
         )
 
     def run(
@@ -53,33 +53,34 @@ class OrchestratorAgent:
             state
         )
 
-        # Execute Tools
+        # Delegate To Specialist Agents
 
-        skill_tool = self.registry.get_tool(
-            "skill_tool"
+        skill_agent = self.agent_registry.get_agent(
+            "skill_agent"
         )
 
-        roadmap_tool = self.registry.get_tool(
-            "roadmap_tool"
+        roadmap_agent = self.agent_registry.get_agent(
+            "roadmap_agent"
         )
 
-        project_tool = self.registry.get_tool(
-            "project_tool"
+        project_agent = self.agent_registry.get_agent(
+            "project_agent"
         )
 
-        skills = skill_tool.execute(
+        skills = skill_agent.run(
             state.user_goal
         )
 
-        roadmap = roadmap_tool.execute(
+        roadmap = roadmap_agent.run(
             state.user_goal
         )
 
-        projects = project_tool.execute(
+        projects = project_agent.run(
             state.user_goal
         )
 
-        # Store Tool Results
+        # Store Results
+
         state.tool_results = {
 
             "skills": skills,
@@ -90,6 +91,7 @@ class OrchestratorAgent:
         }
 
         # Save Memory
+
         memory_record = MemoryRecord(
             user_id=user_id,
             goal=state.user_goal,
@@ -101,10 +103,12 @@ class OrchestratorAgent:
             memory_record
         )
 
-        # Generate Response
+        # Final Response
+
         state.final_response = (
             f"Goal: {state.user_goal}\n\n"
             f"Skills:\n{skills}\n\n"
+            f"Roadmap:\n{roadmap}\n\n"
             f"Projects:\n{projects}"
         )
 
