@@ -8,14 +8,17 @@ router = APIRouter()
 
 
 @router.post("/goal")
-def process_goal(
-    data: dict
-):
+def process_goal(data: dict):
+
+    user_id = data["user_id"]
 
     goal = data["goal"]
 
     agent = OrchestratorAgent()
 
-    result = agent.run(goal)
+    result = agent.run(
+        user_id=user_id,
+        goal=goal
+    )
 
     return result

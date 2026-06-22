@@ -22,12 +22,13 @@ class OrchestratorAgent:
 
     def run(
         self,
+        user_id: str,
         goal: str
     ) -> AgentState:
 
         # Load Memory
         memory = self.memory_manager.load_memory(
-            "dushyant"
+            user_id
         )
 
         if memory:
@@ -46,7 +47,7 @@ class OrchestratorAgent:
 
         # Save Memory
         memory_record = MemoryRecord(
-            user_id="dushyant",
+            user_id=user_id,
             goal=state.user_goal,
             completed_tasks=state.completed_tasks,
             observations=state.observations
