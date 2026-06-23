@@ -1,0 +1,21 @@
+{
+    "user_id": "user123",
+    "primary_goal": "AI Internship",
+    "skills": [
+        "Python",
+        "DSA",
+        "FastAPI",
+        "SQL",
+        "Docker"
+    ],
+    "missing_skills": [
+        "Git missing",
+        "GitHub missing"
+    ],
+    "projects": [
+        "SkillTwin AI",
+        "AI Interview Analytics",
+        "Career Copilot"
+    ],
+    "reflection_score": 8
+}

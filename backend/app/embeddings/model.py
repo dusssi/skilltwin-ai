@@ -7,9 +7,7 @@ _model = None
 
 class EmbeddingModel:
 
-    def get_model(
-        self
-    ):
+    def get_model(self):
 
         global _model
 

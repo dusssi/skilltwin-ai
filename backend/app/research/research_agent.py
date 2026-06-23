@@ -20,13 +20,20 @@ class ResearchAgent:
         query: str
     ):
 
-        evidence = (
+        retrieval = (
             self.retriever.retrieve(
                 query
             )
         )
 
-        if evidence:
+        if retrieval:
+
+            evidence = (
+                retrieval.get(
+                    "facts",
+                    []
+                )
+            )
 
             conclusion = (
                 f"Found {len(evidence)} "
@@ -35,12 +42,17 @@ class ResearchAgent:
 
         else:
 
+            evidence = []
+
             conclusion = (
                 "No relevant knowledge found."
             )
 
         return ResearchResult(
+
             query=query,
+
             evidence=evidence,
+
             conclusion=conclusion
         )

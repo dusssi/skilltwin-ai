@@ -29,6 +29,14 @@ from app.research.research_agent import (
     ResearchAgent
 )
 
+from app.profile.profile_manager import (
+    ProfileManager
+)
+
+from app.profile.profile_updater import (
+    ProfileUpdater
+)
+
 
 class OrchestratorAgent:
 
@@ -58,6 +66,14 @@ class OrchestratorAgent:
 
         self.reflector = (
             Reflector()
+        )
+
+        self.profile_manager = (
+            ProfileManager()
+        )
+
+        self.profile_updater = (
+            ProfileUpdater()
         )
 
     def run(
@@ -197,6 +213,43 @@ class OrchestratorAgent:
             "score": reflection.score
         }
 
+        # Profile Phase
+
+        profile = (
+            self.profile_manager.load_profile(
+                user_id
+            )
+        )
+
+        if profile is None:
+
+            profile = (
+                self.profile_manager.create_profile(
+                    user_id
+                )
+            )
+
+        profile.primary_goal = (
+            state.user_goal
+        )
+
+        profile = (
+            self.profile_updater.update_profile(
+
+                profile=profile,
+
+                skills=skills,
+
+                projects=projects,
+
+                reflection=state.reflection_result
+            )
+        )
+
+        self.profile_manager.save_profile(
+            profile
+        )
+
         # Save Memory
 
         memory_record = MemoryRecord(
@@ -213,6 +266,7 @@ class OrchestratorAgent:
         # Final Response
 
         state.final_response = (
+
             f"Goal: {state.user_goal}\n\n"
 
             f"Context:\n"
