@@ -17,6 +17,10 @@ from app.sessions.session_manager import (
     SessionManager
 )
 
+from app.context.engine import (
+    ContextEngine
+)
+
 
 class OrchestratorAgent:
 
@@ -34,6 +38,10 @@ class OrchestratorAgent:
 
         self.session_manager = (
             SessionManager()
+        )
+
+        self.context_engine = (
+            ContextEngine()
         )
 
     def run(
@@ -65,13 +73,18 @@ class OrchestratorAgent:
             goal
         )
 
+        # Retrieve Relevant Context
+
+        context = self.context_engine.get_context(
+            goal,
+            session.messages
+        )
+
         # Load Existing Memory
 
         memory = self.memory_manager.load_memory(
             user_id
         )
-
-        # Only use memory if goal is empty
 
         if memory and not goal:
 
@@ -82,6 +95,14 @@ class OrchestratorAgent:
         state = AgentState(
             user_goal=goal
         )
+
+        # Store Context In State
+
+        if context:
+
+            state.observations.append(
+                f"Relevant Context: {context}"
+            )
 
         # Create Plan
 
@@ -143,12 +164,13 @@ class OrchestratorAgent:
 
         state.final_response = (
             f"Goal: {state.user_goal}\n\n"
+            f"Context:\n{context}\n\n"
             f"Skills:\n{skills}\n\n"
             f"Roadmap:\n{roadmap}\n\n"
             f"Projects:\n{projects}"
         )
 
-        # Store Assistant Response In Session
+        # Store Assistant Response
 
         self.session_manager.add_message(
             session_id,
