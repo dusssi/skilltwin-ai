@@ -2,8 +2,8 @@ from app.research.models import (
     ResearchResult
 )
 
-from app.research.evidence_store import (
-    EvidenceStore
+from app.knowledge.retriever import (
+    KnowledgeRetriever
 )
 
 
@@ -11,35 +11,33 @@ class ResearchAgent:
 
     def __init__(self):
 
-        self.store = EvidenceStore()
+        self.retriever = (
+            KnowledgeRetriever()
+        )
 
     def research(
         self,
         query: str
     ):
 
-        if "AI" in query:
-
-            self.store.add_evidence(
-                "Python required"
-            )
-
-            self.store.add_evidence(
-                "Git required"
-            )
-
-            self.store.add_evidence(
-                "Portfolio required"
-            )
-
         evidence = (
-            self.store.get_evidence()
+            self.retriever.retrieve(
+                query
+            )
         )
 
-        conclusion = (
-            "Focus on Python, Git, "
-            "and projects before applying."
-        )
+        if evidence:
+
+            conclusion = (
+                f"Found {len(evidence)} "
+                f"relevant knowledge items."
+            )
+
+        else:
+
+            conclusion = (
+                "No relevant knowledge found."
+            )
 
         return ResearchResult(
             query=query,
