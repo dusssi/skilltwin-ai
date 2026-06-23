@@ -42,6 +42,12 @@ class RuntimeState(
         default_factory=dict
     )
 
+    # Real Action Results
+
+    action_results: dict = Field(
+        default_factory=dict
+    )
+
     # Actions Executed
 
     actions_taken: List[str] = Field(
