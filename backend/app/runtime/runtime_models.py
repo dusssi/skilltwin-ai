@@ -48,6 +48,12 @@ class RuntimeState(
         default_factory=dict
     )
 
+    # Reflection Results
+
+    reflection_results: dict = Field(
+        default_factory=dict
+    )
+
     # Actions Executed
 
     actions_taken: List[str] = Field(

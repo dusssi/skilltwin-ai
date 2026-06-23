@@ -7,37 +7,105 @@ class Reflector:
 
     def reflect(
         self,
-        skills: list
+        profile: dict,
+        completed_tasks: list,
+        action_results: dict
     ):
 
         result = ReflectionResult()
 
-        expected_skills = [
+        missing_skills = (
 
-            "Python",
-            "Git",
-            "GitHub",
-            "Docker"
-        ]
-
-        for skill in expected_skills:
-
-            if skill not in skills:
-
-                result.issues.append(
-                    f"{skill} missing"
-                )
-
-                result.suggestions.append(
-                    f"Learn {skill}"
-                )
-
-        result.score = (
-            10 - len(result.issues)
+            profile.get(
+                "missing_skills",
+                []
+            )
         )
 
-        if result.score < 0:
+        resolved_skills = []
 
-            result.score = 0
+        for task in completed_tasks:
+
+            task = task.lower()
+
+            if "git" in task:
+
+                resolved_skills.append(
+                    "Git missing"
+                )
+
+            if "github" in task:
+
+                resolved_skills.append(
+                    "GitHub missing"
+                )
+
+            if "docker" in task:
+
+                resolved_skills.append(
+                    "Docker missing"
+                )
+
+            if "python" in task:
+
+                resolved_skills.append(
+                    "Python missing"
+                )
+
+        remaining_skills = []
+
+        for skill in missing_skills:
+
+            if skill not in resolved_skills:
+
+                remaining_skills.append(
+                    skill
+                )
+
+        result.issues = (
+            remaining_skills
+        )
+
+        for skill in remaining_skills:
+
+            clean_skill = (
+                skill.replace(
+                    " missing",
+                    ""
+                )
+            )
+
+            result.suggestions.append(
+                f"Learn {clean_skill}"
+            )
+
+        total_missing = (
+            len(missing_skills)
+        )
+
+        remaining = (
+            len(remaining_skills)
+        )
+
+        if total_missing == 0:
+
+            result.score = 10
+
+        else:
+
+            progress = (
+                total_missing -
+                remaining
+            )
+
+            result.score = int(
+
+                5 +
+
+                (
+                    progress /
+                    total_missing
+                ) * 5
+            )
 
         return result

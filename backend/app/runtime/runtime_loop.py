@@ -14,6 +14,10 @@ from app.rag.rag_engine import (
     RAGEngine
 )
 
+from app.reflection.reflector import (
+    Reflector
+)
+
 
 class RuntimeLoop:
 
@@ -29,6 +33,10 @@ class RuntimeLoop:
 
         self.rag_engine = (
             RAGEngine()
+        )
+
+        self.reflector = (
+            Reflector()
         )
 
     def initialize(
@@ -117,7 +125,6 @@ class RuntimeLoop:
             return state
 
         missing_skills = (
-
             profile.get(
                 "missing_skills",
                 []
@@ -125,7 +132,6 @@ class RuntimeLoop:
         )
 
         projects = (
-
             profile.get(
                 "projects",
                 []
@@ -217,11 +223,89 @@ class RuntimeLoop:
         state: RuntimeState
     ):
 
+        reflection = (
+            self.reflector.reflect(
+
+                profile=(
+                    state.profile_snapshot
+                ),
+
+                completed_tasks=(
+                    state.completed_tasks
+                ),
+
+                action_results=(
+                    state.action_results
+                )
+            )
+        )
+
+        state.reflection_results = {
+
+            "issues": (
+                reflection.issues
+            ),
+
+            "suggestions": (
+                reflection.suggestions
+            ),
+
+            "score": (
+                reflection.score
+            )
+        }
+
         state.observations.append(
 
-            f"Completed "
-            f"{len(state.completed_tasks)} "
-            f"tasks"
+            f"Reflection Score: "
+            f"{reflection.score}"
+        )
+
+        return state
+
+    def replan(
+        self,
+        state: RuntimeState
+    ):
+
+        if not state.reflection_results:
+
+            return state
+
+        score = (
+            state.reflection_results.get(
+                "score",
+                10
+            )
+        )
+
+        suggestions = (
+            state.reflection_results.get(
+                "suggestions",
+                []
+            )
+        )
+
+        if score >= 8:
+
+            return state
+
+        for suggestion in suggestions:
+
+            if (
+                suggestion
+                not in state.plan
+                and suggestion
+                not in state.completed_tasks
+            ):
+
+                state.plan.append(
+                    suggestion
+                )
+
+        state.observations.append(
+
+            "Plan updated from reflection."
         )
 
         return state
@@ -256,7 +340,12 @@ class RuntimeLoop:
             state
         )
 
-        while state.plan:
+        max_iterations = 10
+
+        while (
+            state.plan
+            and state.iteration_count < max_iterations
+        ):
 
             state.iteration_count += 1
 
@@ -265,6 +354,10 @@ class RuntimeLoop:
             )
 
             state = self.reflect(
+                state
+            )
+
+            state = self.replan(
                 state
             )
 
