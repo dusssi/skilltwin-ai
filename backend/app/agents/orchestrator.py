@@ -21,6 +21,10 @@ from app.context.engine import (
     ContextEngine
 )
 
+from app.reflection.reflector import (
+    Reflector
+)
+
 
 class OrchestratorAgent:
 
@@ -42,6 +46,10 @@ class OrchestratorAgent:
 
         self.context_engine = (
             ContextEngine()
+        )
+
+        self.reflector = (
+            Reflector()
         )
 
     def run(
@@ -73,7 +81,7 @@ class OrchestratorAgent:
             goal
         )
 
-        # Retrieve Relevant Context
+        # Retrieve Context
 
         context = self.context_engine.get_context(
             goal,
@@ -96,7 +104,7 @@ class OrchestratorAgent:
             user_goal=goal
         )
 
-        # Store Context In State
+        # Store Context
 
         if context:
 
@@ -110,7 +118,7 @@ class OrchestratorAgent:
             state
         )
 
-        # Delegate To Specialist Agents
+        # Specialist Agents
 
         skill_agent = self.agent_registry.get_agent(
             "skill_agent"
@@ -124,6 +132,8 @@ class OrchestratorAgent:
             "project_agent"
         )
 
+        # Execute Agents
+
         skills = skill_agent.run(
             state.user_goal
         )
@@ -136,7 +146,7 @@ class OrchestratorAgent:
             state.user_goal
         )
 
-        # Store Results
+        # Store Tool Results
 
         state.tool_results = {
 
@@ -145,6 +155,21 @@ class OrchestratorAgent:
             "roadmap": roadmap,
 
             "projects": projects
+        }
+
+        # Reflection Phase
+
+        reflection = self.reflector.reflect(
+            skills
+        )
+
+        state.reflection_result = {
+
+            "issues": reflection.issues,
+
+            "suggestions": reflection.suggestions,
+
+            "score": reflection.score
         }
 
         # Save Memory
@@ -164,10 +189,27 @@ class OrchestratorAgent:
 
         state.final_response = (
             f"Goal: {state.user_goal}\n\n"
-            f"Context:\n{context}\n\n"
-            f"Skills:\n{skills}\n\n"
-            f"Roadmap:\n{roadmap}\n\n"
-            f"Projects:\n{projects}"
+
+            f"Context:\n"
+            f"{context}\n\n"
+
+            f"Skills:\n"
+            f"{skills}\n\n"
+
+            f"Roadmap:\n"
+            f"{roadmap}\n\n"
+
+            f"Projects:\n"
+            f"{projects}\n\n"
+
+            f"Reflection Score:\n"
+            f"{reflection.score}/10\n\n"
+
+            f"Issues:\n"
+            f"{reflection.issues}\n\n"
+
+            f"Suggestions:\n"
+            f"{reflection.suggestions}"
         )
 
         # Store Assistant Response

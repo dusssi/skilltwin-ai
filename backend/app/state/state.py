@@ -34,6 +34,11 @@ class AgentState(BaseModel):
         default_factory=dict
     )
 
+    # Reflection outputs
+    reflection_result: dict = Field(
+        default_factory=dict
+    )
+
     # Final answer returned to user
     final_response: str = ""
 
