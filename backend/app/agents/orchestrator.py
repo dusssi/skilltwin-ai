@@ -25,6 +25,10 @@ from app.reflection.reflector import (
     Reflector
 )
 
+from app.research.research_agent import (
+    ResearchAgent
+)
+
 
 class OrchestratorAgent:
 
@@ -46,6 +50,10 @@ class OrchestratorAgent:
 
         self.context_engine = (
             ContextEngine()
+        )
+
+        self.research_agent = (
+            ResearchAgent()
         )
 
         self.reflector = (
@@ -98,6 +106,12 @@ class OrchestratorAgent:
 
             goal = memory.goal
 
+        # Research Phase
+
+        research = self.research_agent.research(
+            goal
+        )
+
         # Create Runtime State
 
         state = AgentState(
@@ -111,6 +125,17 @@ class OrchestratorAgent:
             state.observations.append(
                 f"Relevant Context: {context}"
             )
+
+        # Store Research Result
+
+        state.research_result = {
+
+            "query": research.query,
+
+            "evidence": research.evidence,
+
+            "conclusion": research.conclusion
+        }
 
         # Create Plan
 
@@ -192,6 +217,12 @@ class OrchestratorAgent:
 
             f"Context:\n"
             f"{context}\n\n"
+
+            f"Research Evidence:\n"
+            f"{research.evidence}\n\n"
+
+            f"Research Conclusion:\n"
+            f"{research.conclusion}\n\n"
 
             f"Skills:\n"
             f"{skills}\n\n"

@@ -34,6 +34,11 @@ class AgentState(BaseModel):
         default_factory=dict
     )
 
+    # Research outputs
+    research_result: dict = Field(
+        default_factory=dict
+    )
+
     # Reflection outputs
     reflection_result: dict = Field(
         default_factory=dict
