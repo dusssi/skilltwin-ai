@@ -10,6 +10,14 @@ from app.rag.prompt_builder import (
     PromptBuilder
 )
 
+from app.llm.provider import (
+    LLMProvider
+)
+
+from app.llm.prompt_manager import (
+    PromptManager
+)
+
 
 class RAGEngine:
 
@@ -25,6 +33,14 @@ class RAGEngine:
 
         self.prompt_builder = (
             PromptBuilder()
+        )
+
+        self.prompt_manager = (
+            PromptManager()
+        )
+
+        self.llm_provider = (
+            LLMProvider()
         )
 
     def generate(
@@ -55,7 +71,11 @@ class RAGEngine:
                 "response": (
                     "No relevant knowledge "
                     "was found."
-                )
+                ),
+
+                "provider": None,
+
+                "model": None
             }
 
         # Build Context
@@ -66,43 +86,21 @@ class RAGEngine:
             )
         )
 
-        # Build Prompt
+        # Build RAG Prompt
 
         prompt = (
-            self.prompt_builder.build(
-                query,
-                context
+            self.prompt_manager.build_prompt(
+                query=query,
+                context=context
             )
         )
 
-        # Extract Facts Safely
+        # Generate Response Using Gemini
 
-        facts = retrieval.get(
-            "facts",
-            []
-        )
-
-        # Generate Response
-
-        response = (
-
-            f"To achieve your goal of "
-            f"'{query}', you should focus "
-            f"on the following:\n\n"
-
-            f"1. {facts[0] if len(facts) > 0 else 'Learn core fundamentals'}\n"
-
-            f"2. {facts[1] if len(facts) > 1 else 'Build practical projects'}\n"
-
-            f"3. {facts[2] if len(facts) > 2 else 'Create a strong portfolio'}\n\n"
-
-            f"Similarity Score: "
-            f"{retrieval['score']}\n\n"
-
-            f"These recommendations were "
-            f"generated using SkillTwin's "
-            f"semantic retrieval and "
-            f"knowledge base."
+        llm_response = (
+            self.llm_provider.generate(
+                prompt
+            )
         )
 
         return {
@@ -113,5 +111,15 @@ class RAGEngine:
 
             "prompt": prompt,
 
-            "response": response
+            "response": (
+                llm_response.content
+            ),
+
+            "provider": (
+                llm_response.provider
+            ),
+
+            "model": (
+                llm_response.model
+            )
         }
