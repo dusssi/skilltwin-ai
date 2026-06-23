@@ -69,14 +69,19 @@ class KnowledgeRetriever:
 
                 best_topic = topic
 
-        items = (
+        for item in (
             self.knowledge_store.get_all_items()
-        )
-
-        for item in items:
+        ):
 
             if item.topic == best_topic:
 
-                return item.facts
+                return {
+                    "topic": item.topic,
+                    "score": round(
+                        best_score,
+                        4
+                    ),
+                    "facts": item.facts
+                }
 
-        return []
+        return None

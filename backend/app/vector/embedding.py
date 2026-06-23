@@ -1,32 +1,21 @@
+from app.embeddings.encoder import (
+    TextEncoder
+)
+
+
 class EmbeddingEngine:
+
+    def __init__(self):
+
+        self.encoder = (
+            TextEncoder()
+        )
 
     def embed(
         self,
         text: str
     ):
 
-        text = text.lower()
-
-        keywords = [
-
-            "ai",
-            "internship",
-            "engineer",
-            "career",
-            "fastapi",
-            "docker"
-        ]
-
-        vector = []
-
-        for keyword in keywords:
-
-            if keyword in text:
-
-                vector.append(1)
-
-            else:
-
-                vector.append(0)
-
-        return vector
+        return self.encoder.encode(
+            text
+        )

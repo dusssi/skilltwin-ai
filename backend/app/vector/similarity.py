@@ -1,3 +1,6 @@
+import numpy as np
+
+
 class SimilarityEngine:
 
     def calculate(
@@ -6,19 +9,34 @@ class SimilarityEngine:
         vector_b: list
     ):
 
-        score = 0
-
-        for a, b in zip(
-            vector_a,
-            vector_b
-        ):
-
-            score += abs(
-                a - b
-            )
-
-        similarity = (
-            1 / (1 + score)
+        a = np.array(
+            vector_a
         )
 
-        return similarity
+        b = np.array(
+            vector_b
+        )
+
+        numerator = np.dot(
+            a,
+            b
+        )
+
+        denominator = (
+            np.linalg.norm(a)
+            *
+            np.linalg.norm(b)
+        )
+
+        if denominator == 0:
+
+            return 0.0
+
+        similarity = (
+            numerator /
+            denominator
+        )
+
+        return float(
+            similarity
+        )
