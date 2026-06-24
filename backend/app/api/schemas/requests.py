@@ -24,3 +24,10 @@ class ProfileRequest(
 ):
 
     user_id: str
+
+
+class ResumeRequest(
+    BaseModel
+):
+
+    resume_text: str
