@@ -110,6 +110,11 @@ if uploaded_file:
         st.progress(
             score / 10
         )
+        percentage = score * 10
+
+        st.caption(
+            f"Readiness Level: {percentage}%"
+)
 
         if score >= 9:
 
