@@ -22,4 +22,8 @@ class ResumeAnalysis(
         default_factory=list
     )
 
+    recommended_internships: List[str] = Field(
+        default_factory=list
+    )
+
     readiness_score: int = 0

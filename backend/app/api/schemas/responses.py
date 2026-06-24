@@ -43,4 +43,6 @@ class ResumeResponse(
 
     recommended_projects: list
 
+    recommended_internships: list
+
     readiness_score: int

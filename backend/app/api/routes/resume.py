@@ -44,6 +44,9 @@ def analyze_resume(
         recommended_projects=
         result.recommended_projects,
 
+        recommended_internships=
+        result.recommended_internships,
+
         readiness_score=
         result.readiness_score
     )

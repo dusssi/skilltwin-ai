@@ -31,7 +31,10 @@ class InternshipRecommender:
                 "Database Intern"
             )
 
-        if "HTML" in skills and "JavaScript" in skills:
+        if (
+            "HTML" in skills and
+            "JavaScript" in skills
+        ):
 
             recommendations.append(
                 "Frontend Developer Intern"

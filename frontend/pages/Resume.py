@@ -44,6 +44,70 @@ if uploaded_file:
                 )
             )
 
+        score = result[
+            "readiness_score"
+        ]
+
+        percentage = (
+            score * 10
+        )
+
+        skills_count = len(
+            result[
+                "extracted_skills"
+            ]
+        )
+
+        missing_count = len(
+            result[
+                "missing_skills"
+            ]
+        )
+
+        project_count = len(
+            result[
+                "recommended_projects"
+            ]
+        )
+
+        internship_count = len(
+            result[
+                "recommended_internships"
+            ]
+        )
+
+        st.divider()
+
+        metric1, metric2, metric3, metric4 = st.columns(4)
+
+        with metric1:
+
+            st.metric(
+                "🧠 Skills",
+                skills_count
+            )
+
+        with metric2:
+
+            st.metric(
+                "⚠️ Missing",
+                missing_count
+            )
+
+        with metric3:
+
+            st.metric(
+                "🚀 Projects",
+                project_count
+            )
+
+        with metric4:
+
+            st.metric(
+                "📊 Readiness",
+                f"{percentage}%"
+            )
+
         st.divider()
 
         col1, col2 = st.columns(2)
@@ -78,58 +142,91 @@ if uploaded_file:
 
         st.divider()
 
-        st.subheader(
-            "🚀 Recommended Projects"
-        )
+        col3, col4 = st.columns(2)
 
-        for project in result[
-            "recommended_projects"
-        ]:
+        with col3:
 
-            st.info(
-                project
+            st.subheader(
+                "🚀 Recommended Projects"
             )
 
-        st.divider()
+            for project in result[
+                "recommended_projects"
+            ]:
 
-        score = result[
-            "readiness_score"
-        ]
+                st.info(
+                    project
+                )
+
+        with col4:
+
+            st.subheader(
+                "🎯 Recommended Internships"
+            )
+
+            for internship in result[
+                "recommended_internships"
+            ]:
+
+                st.success(
+                    internship
+                )
+
+        st.divider()
 
         st.subheader(
             "📊 Career Report"
         )
 
-        st.metric(
+        report1, report2 = st.columns(2)
 
-            "Career Readiness Score",
+        with report1:
 
-            f"{score}/10"
-        )
+            st.metric(
+
+                "Career Readiness Score",
+
+                f"{score}/10"
+            )
+
+        with report2:
+
+            st.metric(
+
+                "Readiness Level",
+
+                f"{percentage}%"
+            )
 
         st.progress(
             score / 10
         )
-        percentage = score * 10
-
-        st.caption(
-            f"Readiness Level: {percentage}%"
-)
 
         if score >= 9:
 
             st.success(
-                "Excellent Internship Readiness 🚀"
+                "🚀 Excellent Internship Readiness"
             )
 
         elif score >= 7:
 
             st.info(
-                "Good Internship Readiness 👍"
+                "👍 Good Internship Readiness"
             )
 
         else:
 
             st.warning(
-                "Needs Improvement 📚"
+                "📚 Needs Improvement"
             )
+
+        st.divider()
+
+        st.caption(
+            f"""
+            Skills Found: {skills_count} |
+            Missing Skills: {missing_count} |
+            Projects Suggested: {project_count} |
+            Internships Suggested: {internship_count}
+            """
+        )

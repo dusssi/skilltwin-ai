@@ -6,6 +6,10 @@ from app.resume.extractor import (
     SkillExtractor
 )
 
+from app.internships.recommender import (
+    InternshipRecommender
+)
+
 
 class ResumeAnalyzer:
 
@@ -13,6 +17,10 @@ class ResumeAnalyzer:
 
         self.extractor = (
             SkillExtractor()
+        )
+
+        self.recommender = (
+            InternshipRecommender()
         )
 
     def analyze(
@@ -59,6 +67,13 @@ class ResumeAnalyzer:
 
             "SkillTwin AI"
         ]
+
+        analysis.recommended_internships = (
+
+            self.recommender.recommend(
+                skills
+            )
+        )
 
         analysis.readiness_score = (
 
