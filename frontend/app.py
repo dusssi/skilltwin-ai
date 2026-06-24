@@ -17,6 +17,10 @@ st.title(
     "🚀 SkillTwin AI"
 )
 
+st.caption(
+    "Your AI Career Growth Companion"
+)
+
 user_id = st.text_input(
 
     "User ID",
@@ -25,73 +29,123 @@ user_id = st.text_input(
 )
 
 if st.button(
-    "Load Profile"
+    "Load Dashboard"
 ):
 
-    profile_data = (
-        get_profile(
-            user_id
-        )
+    data = get_profile(
+        user_id
     )
 
-    profile = (
-        profile_data[
-            "profile"
-        ]
-    )
+    profile = data[
+        "profile"
+    ]
+
+    st.divider()
 
     st.subheader(
-        "Career Goal"
+        "🎯 Career Goal"
     )
 
-    st.write(
+    st.success(
         profile[
             "primary_goal"
         ]
     )
 
-    st.subheader(
-        "Reflection Score"
-    )
+    col1, col2, col3, col4 = st.columns(4)
 
-    st.metric(
+    with col1:
 
-        "Score",
+        st.metric(
 
-        profile[
-            "reflection_score"
-        ]
-    )
+            "Skills",
 
-    st.subheader(
-        "Skills"
-    )
+            len(
+                profile[
+                    "skills"
+                ]
+            )
+        )
 
-    st.write(
+    with col2:
 
-        profile[
+        st.metric(
+
+            "Missing Skills",
+
+            len(
+                profile[
+                    "missing_skills"
+                ]
+            )
+        )
+
+    with col3:
+
+        st.metric(
+
+            "Projects",
+
+            len(
+                profile[
+                    "projects"
+                ]
+            )
+        )
+
+    with col4:
+
+        st.metric(
+
+            "Reflection Score",
+
+            profile[
+                "reflection_score"
+            ]
+        )
+
+    st.divider()
+
+    left, right = st.columns(2)
+
+    with left:
+
+        st.subheader(
+            "🧠 Current Skills"
+        )
+
+        for skill in profile[
             "skills"
-        ]
-    )
+        ]:
 
-    st.subheader(
-        "Missing Skills"
-    )
+            st.success(
+                skill
+            )
 
-    st.write(
+    with right:
 
-        profile[
+        st.subheader(
+            "⚠️ Missing Skills"
+        )
+
+        for skill in profile[
             "missing_skills"
-        ]
-    )
+        ]:
+
+            st.warning(
+                skill
+            )
+
+    st.divider()
 
     st.subheader(
-        "Projects"
+        "🚀 Projects"
     )
 
-    st.write(
+    for project in profile[
+        "projects"
+    ]:
 
-        profile[
-            "projects"
-        ]
-    )
+        st.info(
+            project
+        )
