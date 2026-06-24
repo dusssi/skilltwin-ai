@@ -87,3 +87,29 @@ def analyze_resume(
     )
 
     return response.json()
+
+
+def upload_resume(
+    uploaded_file
+):
+
+    files = {
+
+        "file": (
+
+            uploaded_file.name,
+
+            uploaded_file,
+
+            "application/pdf"
+        )
+    }
+
+    response = requests.post(
+
+        f"{BASE_URL}/resume/upload",
+
+        files=files
+    )
+
+    return response.json()

@@ -1,12 +1,12 @@
 import streamlit as st
 
 from services.api import (
-    analyze_resume
+    upload_resume
 )
 
 st.set_page_config(
 
-    page_title="Resume Analyzer",
+    page_title="Resume Intelligence",
 
     page_icon="📄",
 
@@ -17,76 +17,114 @@ st.title(
     "📄 Resume Intelligence"
 )
 
-resume_text = st.text_area(
+uploaded_file = st.file_uploader(
 
-    "Paste Resume Content",
+    "Upload Resume PDF",
 
-    height=300
+    type=["pdf"]
 )
 
-if st.button(
-    "Analyze Resume"
-):
+if uploaded_file:
 
-    result = (
-        analyze_resume(
-            resume_text
-        )
+    st.success(
+        f"Uploaded: {uploaded_file.name}"
     )
 
-    st.divider()
+    if st.button(
+        "Analyze Resume"
+    ):
 
-    col1, col2 = st.columns(2)
+        with st.spinner(
+            "Analyzing Resume..."
+        ):
 
-    with col1:
-
-        st.subheader(
-            "✅ Extracted Skills"
-        )
-
-        for skill in result[
-            "extracted_skills"
-        ]:
-
-            st.success(
-                skill
+            result = (
+                upload_resume(
+                    uploaded_file
+                )
             )
 
-    with col2:
+        st.divider()
 
-        st.subheader(
-            "⚠️ Missing Skills"
-        )
+        col1, col2 = st.columns(2)
 
-        for skill in result[
-            "missing_skills"
-        ]:
+        with col1:
 
-            st.warning(
-                skill
+            st.subheader(
+                "✅ Extracted Skills"
             )
 
-    st.divider()
+            for skill in result[
+                "extracted_skills"
+            ]:
 
-    st.subheader(
-        "🚀 Recommended Projects"
-    )
+                st.success(
+                    skill
+                )
 
-    for project in result[
-        "recommended_projects"
-    ]:
+        with col2:
 
-        st.info(
-            project
+            st.subheader(
+                "⚠️ Missing Skills"
+            )
+
+            for skill in result[
+                "missing_skills"
+            ]:
+
+                st.warning(
+                    skill
+                )
+
+        st.divider()
+
+        st.subheader(
+            "🚀 Recommended Projects"
         )
 
-    st.divider()
+        for project in result[
+            "recommended_projects"
+        ]:
 
-    st.metric(
+            st.info(
+                project
+            )
 
-        "Career Readiness Score",
+        st.divider()
 
-        result[
+        score = result[
             "readiness_score"
         ]
-    )
+
+        st.subheader(
+            "📊 Career Report"
+        )
+
+        st.metric(
+
+            "Career Readiness Score",
+
+            f"{score}/10"
+        )
+
+        st.progress(
+            score / 10
+        )
+
+        if score >= 9:
+
+            st.success(
+                "Excellent Internship Readiness 🚀"
+            )
+
+        elif score >= 7:
+
+            st.info(
+                "Good Internship Readiness 👍"
+            )
+
+        else:
+
+            st.warning(
+                "Needs Improvement 📚"
+            )
