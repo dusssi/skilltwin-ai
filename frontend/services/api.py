@@ -69,3 +69,21 @@ def run_runtime(
     )
 
     return response.json()
+
+
+def analyze_resume(
+    resume_text: str
+):
+
+    response = requests.post(
+
+        f"{BASE_URL}/resume/analyze",
+
+        json={
+
+            "resume_text":
+            resume_text
+        }
+    )
+
+    return response.json()
