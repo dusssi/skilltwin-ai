@@ -7,21 +7,64 @@ class SkillExtractor:
 
         skills = []
 
+        text = text.lower()
+
         known_skills = [
 
             "Python",
-            "FastAPI",
-            "Docker",
+            "Java",
+            "C",
+            "C++",
             "SQL",
+
             "Git",
             "GitHub",
+
+            "FastAPI",
+            "Flask",
+            "Django",
+
+            "Docker",
+            "Kubernetes",
+
             "Machine Learning",
-            "Deep Learning"
+            "Deep Learning",
+            "NLP",
+            "Computer Vision",
+
+            "TensorFlow",
+            "PyTorch",
+            "Scikit-Learn",
+
+            "Data Analysis",
+            "Data Visualization",
+
+            "MongoDB",
+            "PostgreSQL",
+            "MySQL",
+
+            "HTML",
+            "CSS",
+            "JavaScript",
+
+            "React",
+            "Node.js",
+
+            "Android Studio",
+
+            "Recommendation Systems",
+
+            "Operating Systems",
+            "DBMS",
+            "OOP",
+
+            "Linux",
+            "AWS"
         ]
 
         for skill in known_skills:
 
-            if skill.lower() in text.lower():
+            if skill.lower() in text:
 
                 skills.append(
                     skill
