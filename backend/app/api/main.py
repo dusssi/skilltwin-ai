@@ -16,6 +16,14 @@ from app.api.routes.roadmap import (
     router as roadmap_router
 )
 
+from app.api.routes.resume import (
+    router as resume_router
+)
+
+from app.api.routes.resume_upload import (
+    router as resume_upload_router
+)
+
 app = FastAPI(
 
     title="SkillTwin API",
@@ -37,6 +45,14 @@ app.include_router(
 
 app.include_router(
     roadmap_router
+)
+
+app.include_router(
+    resume_router
+)
+
+app.include_router(
+    resume_upload_router
 )
 
 

@@ -31,3 +31,18 @@ class ProfileResponse(
         str,
         Any
     ]
+
+
+class ResumeResponse(
+    BaseModel
+):
+
+    extracted_skills: list
+
+    missing_skills: list
+
+    recommended_projects: list
+
+    recommended_internships: list
+
+    readiness_score: int
