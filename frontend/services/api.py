@@ -1,6 +1,8 @@
 import requests
+import os
 
-BASE_URL = (
+BASE_URL = os.getenv(
+    "BACKEND_URL",
     "http://127.0.0.1:8000"
 )
 
