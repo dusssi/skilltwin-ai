@@ -1,8 +1,27 @@
+from pypdf import PdfReader
+
+
 class ResumeParser:
 
-    def parse(
+    def parse_pdf(
         self,
-        text: str
+        file_path: str
     ):
+
+        reader = PdfReader(
+            file_path
+        )
+
+        text = ""
+
+        for page in reader.pages:
+
+            extracted = (
+                page.extract_text()
+            )
+
+            if extracted:
+
+                text += extracted
 
         return text
