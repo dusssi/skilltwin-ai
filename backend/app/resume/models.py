@@ -1,29 +1,25 @@
-from pydantic import (
-    BaseModel,
-    Field
-)
+"""Resume analysis models."""
 
-from typing import List
+from pydantic import BaseModel, Field
 
 
-class ResumeAnalysis(
-    BaseModel
-):
+class ResumeExperience(BaseModel):
+    years: float = 0.0
+    roles: list[str] = Field(default_factory=list)
+    seniority: str = "unknown"
 
-    extracted_skills: List[str] = Field(
-        default_factory=list
-    )
 
-    missing_skills: List[str] = Field(
-        default_factory=list
-    )
+class ResumeProject(BaseModel):
+    title: str
+    detail: str = ""
+    skills: list[str] = Field(default_factory=list)
 
-    recommended_projects: List[str] = Field(
-        default_factory=list
-    )
 
-    recommended_internships: List[str] = Field(
-        default_factory=list
-    )
-
+class ResumeAnalysis(BaseModel):
+    extracted_skills: list[str] = Field(default_factory=list)
+    missing_skills: list[str] = Field(default_factory=list)
+    experience: ResumeExperience = Field(default_factory=ResumeExperience)
+    projects: list[ResumeProject] = Field(default_factory=list)
+    education: list[str] = Field(default_factory=list)
+    career_signals: list[str] = Field(default_factory=list)
     readiness_score: int = 0

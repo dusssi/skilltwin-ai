@@ -1,307 +1,143 @@
-from app.state.state import AgentState
+"""Canonical SkillTwin orchestrator (the ONE agent execution architecture).
+
+Pipeline::
+
+    observe → plan → act (specialists) → reflect → finish
+
+* Observe loads the real Twin summary, gaps, roadmap progress and memory.
+* Plan builds typed steps from actual state (no static script).
+* Act runs skill/roadmap/recommendation/research specialists and persists
+  every artifact (gaps, roadmap, recommendations, research).
+* Reflect scores progress from real deltas and records an agent-run event.
+
+All inter-agent communication uses typed Pydantic state (``AgentRunState``).
+"""
+
+from app.agents.specialist.registry import AgentRegistry
+from app.agents.state import AgentRunState
+from app.db import memory as memory_repo
+from app.db import twin as twin_repo
+from app.memory.memory_manager import MemoryManager
 from app.planner.planner import Planner
-
-from app.memory.models import (
-    MemoryRecord
-)
-
-from app.memory.memory_manager import (
-    MemoryManager
-)
-
-from app.agents.specialist.registry import (
-    AgentRegistry
-)
-
-from app.sessions.session_manager import (
-    SessionManager
-)
-
-from app.context.engine import (
-    ContextEngine
-)
-
-from app.reflection.reflector import (
-    Reflector
-)
-
-from app.research.research_agent import (
-    ResearchAgent
-)
-
-from app.profile.profile_manager import (
-    ProfileManager
-)
-
-from app.profile.profile_updater import (
-    ProfileUpdater
-)
+from app.reflection.models import ReflectionInput
+from app.twin import service as twin_service
 
 
 class OrchestratorAgent:
+    """Single entry point for autonomous Twin maintenance runs."""
 
     def __init__(self):
-
         self.planner = Planner()
+        self.registry = AgentRegistry()
+        self.memory = MemoryManager()
 
-        self.memory_manager = (
-            MemoryManager()
-        )
+    # ------------------------------------------------------------------ run
+    def run(self, user_id: str, goal: str | None = None) -> AgentRunState:
+        state = AgentRunState(user_id=user_id, status="running")
+        if goal:
+            twin_repo.update_profile(user_id, {"primary_goal": goal})
+            state.goal = goal
 
-        self.agent_registry = (
-            AgentRegistry()
-        )
+        state = self.observe(state)
+        state = self.plan(state)
+        state = self.act(state)
+        state = self.reflect(state)
+        state = self.finish(state)
+        return state
 
-        self.session_manager = (
-            SessionManager()
-        )
-
-        self.context_engine = (
-            ContextEngine()
-        )
-
-        self.research_agent = (
-            ResearchAgent()
-        )
-
-        self.reflector = (
-            Reflector()
-        )
-
-        self.profile_manager = (
-            ProfileManager()
-        )
-
-        self.profile_updater = (
-            ProfileUpdater()
-        )
-
-    def run(
-        self,
-        user_id: str,
-        session_id: str,
-        goal: str
-    ) -> AgentState:
-
-        # Create / Load Session
-
-        session = self.session_manager.get_session(
-            session_id
-        )
-
-        if session is None:
-
-            session = (
-                self.session_manager.create_session(
-                    session_id,
-                    user_id
-                )
-            )
-
-        # Store User Message
-
-        self.session_manager.add_message(
-            session_id,
-            goal
-        )
-
-        # Retrieve Context
-
-        context = self.context_engine.get_context(
-            goal,
-            session.messages
-        )
-
-        # Load Existing Memory
-
-        memory = self.memory_manager.load_memory(
-            user_id
-        )
-
-        if memory and not goal:
-
-            goal = memory.goal
-
-        # Research Phase
-
-        research = self.research_agent.research(
-            goal
-        )
-
-        # Create Runtime State
-
-        state = AgentState(
-            user_goal=goal
-        )
-
-        # Store Context
-
-        if context:
-
+    # ---------------------------------------------------------------- phases
+    def observe(self, state: AgentRunState) -> AgentRunState:
+        summary = twin_service.build_summary(state.user_id)
+        if not state.goal:
+            state.goal = summary.primary_goal or summary.target_role or "Career growth"
+        state.observations = [
+            f"Goal: {state.goal}",
+            f"Target role: {summary.target_role or 'not set'} (rubric: {summary.role_key})",
+            f"Skills: {summary.skills_count} tracked, avg level {summary.avg_level}/5",
+            f"Gaps: {summary.gaps_count} open; top: {', '.join(summary.top_gaps) or 'none'}",
+            f"Projects: {summary.projects_count}",
+        ]
+        if summary.roadmap_progress:
+            progress = summary.roadmap_progress
             state.observations.append(
-                f"Relevant Context: {context}"
+                f"Roadmap: {progress.get('completed', 0)}/{progress.get('total', 0)} done"
             )
+        else:
+            state.observations.append("Roadmap: none yet")
+        state.observations.append(f"Readiness: {summary.readiness_score}/100")
+        memories = self.memory.recall(state.user_id, limit=5)
+        for memory in memories:
+            state.observations.append(f"Memory [{memory['kind']}]: {memory['content']}")
+        return state
 
-        # Store Research Result
+    def plan(self, state: AgentRunState) -> AgentRunState:
+        summary = twin_service.build_summary(state.user_id)
+        progress = summary.roadmap_progress or {}
+        state.plan = self.planner.create_plan(state.goal, {
+            "gaps_open": summary.gaps_count,
+            "roadmap_total": progress.get("total", 0),
+            "skills_count": summary.skills_count,
+        })
+        return state
 
-        state.research_result = {
+    def act(self, state: AgentRunState) -> AgentRunState:
+        user_id = state.user_id
+        for step in state.plan.steps:
+            if step.name in {"observe", "reflect"}:
+                state.completed_steps.append(step.name)
+                continue
+            if step.name in {"analyze_gaps", "bootstrap_twin"}:
+                agent = self.registry.get_agent("skill_agent")
+                state.gaps = agent.run(user_id)["gaps"]
+            elif step.name == "generate_roadmap":
+                agent = self.registry.get_agent("roadmap_agent")
+                state.roadmap = agent.run(user_id, goal=state.goal)
+            elif step.name == "recommend":
+                agent = self.registry.get_agent("recommendation_agent")
+                state.recommendations = agent.run(user_id)
+            elif step.name == "research":
+                agent = self.registry.get_agent("research_agent")
+                result = agent.research(state.goal or "career growth")
+                state.research = result.model_dump()
+            state.completed_steps.append(step.name)
+        # Ensure roadmap context exists for reflection even when generation
+        # was skipped (active roadmap already present).
+        if not state.roadmap:
+            agent = self.registry.get_agent("roadmap_agent")
+            state.roadmap = agent.run(user_id, goal=state.goal)
+        return state
 
-            "query": research.query,
+    def reflect(self, state: AgentRunState) -> AgentRunState:
+        summary = twin_service.build_summary(state.user_id)
+        progress = summary.roadmap_progress or {}
+        history = twin_repo.list_skill_history(state.user_id, limit=10)
+        improved = sorted({entry["skill_name"] for entry in history})
+        events = memory_repo.list_events(state.user_id, limit=10)
+        reflector = self.registry.get_agent("reflection_agent")
+        result = reflector.reflect(ReflectionInput(
+            goal=state.goal,
+            gaps_closed=max(0, summary.skills_count - summary.gaps_count),
+            gaps_open=summary.gaps_count,
+            roadmap_completed=progress.get("completed", 0),
+            roadmap_total=progress.get("total", 0),
+            skills_improved=improved,
+            recent_events=[event["event_type"] for event in events],
+        ))
+        state.reflection = result.model_dump()
+        return state
 
-            "evidence": research.evidence,
-
-            "conclusion": research.conclusion
-        }
-
-        # Create Plan
-
-        state = self.planner.create_plan(
-            state
+    def finish(self, state: AgentRunState) -> AgentRunState:
+        reflection = state.reflection or {}
+        state.summary = (
+            f"Agent run for goal '{state.goal}': {len(state.completed_steps)} steps, "
+            f"{len(state.gaps)} open gaps, reflection score "
+            f"{reflection.get('score', 0)}/10."
         )
-
-        # Specialist Agents
-
-        skill_agent = self.agent_registry.get_agent(
-            "skill_agent"
+        state.status = "completed"
+        memory_repo.record_event(
+            state.user_id, "agent_run_completed",
+            data={"goal": state.goal, "steps": state.completed_steps,
+                  "open_gaps": len(state.gaps),
+                  "reflection_score": reflection.get("score", 0)},
         )
-
-        roadmap_agent = self.agent_registry.get_agent(
-            "roadmap_agent"
-        )
-
-        project_agent = self.agent_registry.get_agent(
-            "project_agent"
-        )
-
-        # Execute Agents
-
-        skills = skill_agent.run(
-            state.user_goal
-        )
-
-        roadmap = roadmap_agent.run(
-            state.user_goal
-        )
-
-        projects = project_agent.run(
-            state.user_goal
-        )
-
-        # Store Tool Results
-
-        state.tool_results = {
-
-            "skills": skills,
-
-            "roadmap": roadmap,
-
-            "projects": projects
-        }
-
-        # Reflection Phase
-
-        reflection = self.reflector.reflect(
-            skills
-        )
-
-        state.reflection_result = {
-
-            "issues": reflection.issues,
-
-            "suggestions": reflection.suggestions,
-
-            "score": reflection.score
-        }
-
-        # Profile Phase
-
-        profile = (
-            self.profile_manager.load_profile(
-                user_id
-            )
-        )
-
-        if profile is None:
-
-            profile = (
-                self.profile_manager.create_profile(
-                    user_id
-                )
-            )
-
-        profile.primary_goal = (
-            state.user_goal
-        )
-
-        profile = (
-            self.profile_updater.update_profile(
-
-                profile=profile,
-
-                skills=skills,
-
-                projects=projects,
-
-                reflection=state.reflection_result
-            )
-        )
-
-        self.profile_manager.save_profile(
-            profile
-        )
-
-        # Save Memory
-
-        memory_record = MemoryRecord(
-            user_id=user_id,
-            goal=state.user_goal,
-            completed_tasks=state.completed_tasks,
-            observations=state.observations
-        )
-
-        self.memory_manager.save_memory(
-            memory_record
-        )
-
-        # Final Response
-
-        state.final_response = (
-
-            f"Goal: {state.user_goal}\n\n"
-
-            f"Context:\n"
-            f"{context}\n\n"
-
-            f"Research Evidence:\n"
-            f"{research.evidence}\n\n"
-
-            f"Research Conclusion:\n"
-            f"{research.conclusion}\n\n"
-
-            f"Skills:\n"
-            f"{skills}\n\n"
-
-            f"Roadmap:\n"
-            f"{roadmap}\n\n"
-
-            f"Projects:\n"
-            f"{projects}\n\n"
-
-            f"Reflection Score:\n"
-            f"{reflection.score}/10\n\n"
-
-            f"Issues:\n"
-            f"{reflection.issues}\n\n"
-
-            f"Suggestions:\n"
-            f"{reflection.suggestions}"
-        )
-
-        # Store Assistant Response
-
-        self.session_manager.add_message(
-            session_id,
-            state.final_response
-        )
-
         return state

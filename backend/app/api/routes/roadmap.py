@@ -1,65 +1,53 @@
-from fastapi import APIRouter
+"""Roadmap routes: active roadmap, generation, item completion."""
 
-from app.profile.profile_manager import (
-    ProfileManager
-)
+from fastapi import APIRouter, Depends
 
-router = APIRouter()
+from app.api.errors import not_found
+from app.api.schemas.requests import RoadmapGenerateRequest, RoadmapItemUpdateRequest
+from app.auth.dependencies import get_current_user
+from app.db import content as content_repo
+from app.roadmap.service import RoadmapService
 
-profile_manager = (
-    ProfileManager()
-)
+router = APIRouter(prefix="/roadmap", tags=["roadmap"])
+
+service = RoadmapService()
 
 
-@router.get(
-    "/roadmap/{user_id}"
-)
-def get_roadmap(
-    user_id: str
-):
+@router.get("")
+def get_roadmap(user: dict = Depends(get_current_user)):
+    active = service.get_active(user["id"])
+    if not active:
+        return {"roadmap": None, "items": [], "progress": {"total": 0, "completed": 0, "percent": 0}}
+    return active
 
-    profile = (
-        profile_manager.load_profile(
-            user_id
-        )
-    )
 
-    if not profile:
+@router.get("/history")
+def roadmap_history(user: dict = Depends(get_current_user)):
+    return {"roadmaps": content_repo.list_roadmaps(user["id"])}
 
-        return {
 
-            "status": "error",
-
-            "message":
-            "Profile not found"
-        }
-
-    roadmap = []
-
-    for skill in profile.missing_skills:
-
-        roadmap.append(
-            f"Learn {skill}"
-        )
-
-    roadmap.append(
-        "Build Portfolio Projects"
-    )
-
-    roadmap.append(
-        "Apply For AI Internships"
-    )
-
+@router.post("/generate", status_code=201)
+def generate_roadmap(payload: RoadmapGenerateRequest, user: dict = Depends(get_current_user)):
+    generated = service.generate(user["id"], goal=payload.goal)
+    items = generated["items"]
+    done = sum(1 for item in items if item["status"] == "completed")
     return {
-
-        "status": "success",
-
-        "user_id":
-        profile.user_id,
-
-        "goal":
-        profile.primary_goal,
-
-        "roadmap":
-        roadmap
+        "roadmap": generated["roadmap"],
+        "items": items,
+        "progress": {"total": len(items), "completed": done,
+                     "percent": round(done / len(items) * 100) if items else 0},
     }
+
+
+@router.patch("/items/{item_id}")
+def update_item(item_id: int, payload: RoadmapItemUpdateRequest,
+                user: dict = Depends(get_current_user)):
+    if payload.status == "completed":
+        try:
+            return service.complete_item(user["id"], item_id)
+        except LookupError:
+            raise not_found("Roadmap item")
+    item = content_repo.update_roadmap_item(user["id"], item_id, {"status": payload.status})
+    if not item:
+        raise not_found("Roadmap item")
+    return {"item": item}

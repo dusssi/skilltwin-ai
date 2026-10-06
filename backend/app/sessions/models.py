@@ -1,23 +1,28 @@
+"""Session models (DB-backed)."""
+
 from pydantic import BaseModel, Field
-
-from typing import List
-
-from datetime import datetime
 
 
 class Session(BaseModel):
-
-    session_id: str
-
-    user_id: str
-
-    messages: List[str] = Field(
-        default_factory=list
-    )
-
+    session_id: str = ""
+    user_id: str = ""
+    messages: list[str] = Field(default_factory=list)
     summary: str = ""
+    created_at: str = ""
 
-    created_at: str = Field(
-        default_factory=lambda:
-        datetime.now().isoformat()
-    )
+
+class StoredSession(BaseModel):
+    id: str
+    user_id: str
+    summary: str = ""
+    created_at: str = ""
+    updated_at: str = ""
+
+
+class Message(BaseModel):
+    id: int = 0
+    session_id: str = ""
+    user_id: str = ""
+    role: str = ""
+    content: str = ""
+    created_at: str = ""

@@ -1,0 +1,102 @@
+[
+  {
+    "topic": "AI Internship",
+    "facts": [
+      "Python is required for most AI internships",
+      "Git and GitHub are required to show collaborative work",
+      "A portfolio with 2-3 projects matters more than certificates",
+      "Revise ML fundamentals: regression, classification, evaluation metrics",
+      "Practice explaining your projects clearly in interviews"
+    ]
+  },
+  {
+    "topic": "Python",
+    "facts": [
+      "Master core Python: data structures, OOP, exceptions, file handling",
+      "Learn virtual environments and pip dependency management",
+      "Practice with small automation scripts before frameworks",
+      "Learn pytest basics to test your own code"
+    ]
+  },
+  {
+    "topic": "FastAPI",
+    "facts": [
+      "Learn routing, path and query parameters first",
+      "Use Pydantic models for request validation",
+      "Learn dependency injection for auth and database sessions",
+      "Interactive docs are available at /docs for every FastAPI app"
+    ]
+  },
+  {
+    "topic": "Machine Learning",
+    "facts": [
+      "Start with scikit-learn: train/test split, cross-validation, baselines",
+      "Understand precision, recall, F1 and ROC-AUC before deep learning",
+      "Feature engineering often beats a fancier model",
+      "Keep a clean experiment log for every model you train"
+    ]
+  },
+  {
+    "topic": "Deep Learning",
+    "facts": [
+      "Learn PyTorch tensors, autograd and the training loop",
+      "Start from pretrained models and fine-tune for small datasets",
+      "Monitor training and validation loss to detect overfitting",
+      "GPUs speed up training but are not required to begin"
+    ]
+  },
+  {
+    "topic": "SQL",
+    "facts": [
+      "Practice SELECT, WHERE, JOIN and GROUP BY until fluent",
+      "Learn indexes to understand query performance",
+      "Window functions are frequently asked in data interviews",
+      "Always use parameterized queries to prevent SQL injection"
+    ]
+  },
+  {
+    "topic": "Git and GitHub",
+    "facts": [
+      "Commit small, with clear messages describing the change",
+      "Learn branching, merging and pull requests early",
+      "Keep a clean README on every portfolio repository",
+      "Review diffs before pushing to avoid leaking secrets"
+    ]
+  },
+  {
+    "topic": "Docker",
+    "facts": [
+      "Containerization packages your app with its dependencies",
+      "A Dockerfile defines the image; Compose orchestrates services",
+      "Keep images small with slim base images and .dockerignore",
+      "Never bake secrets into images; inject them at runtime"
+    ]
+  },
+  {
+    "topic": "Data Analysis",
+    "facts": [
+      "Pandas covers most cleaning, grouping and reshaping tasks",
+      "Always inspect distributions before modeling or reporting",
+      "A clear chart with a takeaway beats ten raw tables",
+      "Document assumptions alongside every analysis"
+    ]
+  },
+  {
+    "topic": "Resume",
+    "facts": [
+      "One page per 5 years of experience; students should use one page",
+      "Quantify impact with numbers wherever possible",
+      "List skills honestly; interviews will test them",
+      "Tailor the top third of the resume to each application"
+    ]
+  },
+  {
+    "topic": "Interviews",
+    "facts": [
+      "Prepare STAR stories for teamwork, conflict and ownership",
+      "Revise DSA basics: arrays, strings, hash maps, two pointers",
+      "Ask clarifying questions before coding a solution",
+      "Follow up with a short thank-you note after interviews"
+    ]
+  }
+]
