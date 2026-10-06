@@ -1,225 +1,81 @@
+"""SkillTwin AI — landing page and live Twin overview."""
+
 import streamlit as st
 
-st.set_page_config(
-    page_title="SkillTwin AI",
-    page_icon="assets/favicon.png",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+from components.header import render_header, render_sidebar_auth, show_api_error
+from services.api import ApiError, get_twin, health
 
-st.markdown(
-    """
-    <style>
+st.set_page_config(page_title="SkillTwin AI", page_icon="🧠", layout="wide",
+                   initial_sidebar_state="expanded")
 
-    .subtitle {
-        font-size:18px;
-        color:#9ca3af;
-        margin-bottom:10px;
-    }
+render_header("SkillTwin AI", "Your evolving AI career twin — skills, gaps, roadmap, memory.")
+user = render_sidebar_auth()
 
-    .footer {
-        text-align:center;
-        color:#9ca3af;
-        padding-top:20px;
-    }
+try:
+    status = health()
+except ApiError as exc:
+    show_api_error(exc)
+    st.stop()
 
-    </style>
-    """,
-    unsafe_allow_html=True
-)
-
-# ======================
-# HEADER
-# ======================
-
-header_col1, header_col2 = st.columns(
-    [1, 4]
-)
-
-with header_col1:
-
-    st.image(
-        "assets/logo.png",
-        width=120
-    )
-
-with header_col2:
-
-    st.title(
-        "SkillTwin AI"
-    )
-
-    st.caption(
-        "AI Career Growth Companion"
-    )
-
+st.caption(f"Backend: {status.get('status', '?')} • v{status.get('version', '?')} • "
+           f"DB ready: {status.get('database_ready')} • "
+           f"LLM: {'connected' if status.get('llm_configured') else 'local Twin mode'}")
 st.divider()
 
-# ======================
-# DASHBOARD METRICS
-# ======================
+token = st.session_state.get("token")
+if not token or not user:
+    st.subheader("What SkillTwin does")
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        st.success("📄 Resume → Twin\n\nUpload a resume; skills, gaps and readiness update your Twin.")
+        st.success("🎯 Gaps & Roadmap\n\nPersonalized gaps and a roadmap generated from them.")
+    with col2:
+        st.success("💬 Twin-aware Chat\n\nCareer coaching grounded in your real profile and memory.")
+        st.success("🧠 Memory\n\nGoals, achievements and preferences persist across sessions.")
+    with col3:
+        st.success("⚙️ Agent Runs\n\nObserve → plan → act → reflect maintenance of your Twin.")
+        st.success("🚀 Recommendations\n\nProjects and internships matched to your gaps.")
+    st.divider()
+    st.info("👈 Create an account or sign in from the sidebar to build your Skill Twin.")
+    st.stop()
 
-metric1, metric2, metric3, metric4 = st.columns(4)
+try:
+    with st.spinner("Loading your Skill Twin..."):
+        twin = get_twin(token)
+except ApiError as exc:
+    show_api_error(exc)
+    st.stop()
 
-with metric1:
+summary = twin.get("summary", {})
+profile = twin.get("profile", {})
 
-    st.metric(
-        "🧠 Skills",
-        "19"
-    )
-
-with metric2:
-
-    st.metric(
-        "⚠ Missing",
-        "2"
-    )
-
-with metric3:
-
-    st.metric(
-        "🚀 Projects",
-        "3"
-    )
-
-with metric4:
-
-    st.metric(
-        "📊 Readiness",
-        "80%"
-    )
-
-st.divider()
-
-# ======================
-# FEATURES
-# ======================
-
-st.subheader(
-    "✨ Platform Features"
-)
-
-col1, col2, col3 = st.columns(3)
-
-with col1:
-
-    st.success(
-        "📄 Resume Intelligence"
-    )
-
-    st.success(
-        "🎯 Internship Recommendations"
-    )
-
-with col2:
-
-    st.success(
-        "🗺️ Career Roadmaps"
-    )
-
-    st.success(
-        "💬 AI Career Coach"
-    )
-
-with col3:
-
-    st.success(
-        "⚙️ Runtime Monitoring"
-    )
-
-    st.success(
-        "📊 Readiness Analytics"
-    )
+m1, m2, m3, m4 = st.columns(4)
+m1.metric("🧠 Skills tracked", summary.get("skills_count", 0))
+m2.metric("🎯 Open gaps", summary.get("gaps_count", 0))
+m3.metric("🚀 Projects", summary.get("projects_count", 0))
+m4.metric("📊 Readiness", f"{summary.get('readiness_score', 0)}/100")
 
 st.divider()
-
-# ======================
-# QUICK ACTIONS
-# ======================
-
-st.subheader(
-    "🚀 Quick Actions"
-)
-
-action1, action2, action3 = st.columns(3)
-
-with action1:
-
-    st.info(
-        "📄 Analyze Resume"
-    )
-
-with action2:
-
-    st.info(
-        "🗺️ Generate Roadmap"
-    )
-
-with action3:
-
-    st.info(
-        "💬 Chat With SkillTwin"
-    )
-
-st.divider()
-
-# ======================
-# ABOUT
-# ======================
-
 left, right = st.columns(2)
-
 with left:
-
-    st.subheader(
-        "📈 What SkillTwin Does"
-    )
-
-    st.write(
-        """
-        • Analyze resumes
-
-        • Detect skill gaps
-
-        • Recommend projects
-
-        • Suggest internships
-
-        • Generate roadmaps
-
-        • Track career growth
-        """
-    )
-
+    st.subheader("🎯 Career direction")
+    st.write(f"**Goal:** {profile.get('primary_goal') or '— not set —'}")
+    st.write(f"**Target role:** {profile.get('target_role') or '— not set —'}")
+    if summary.get("top_gaps"):
+        st.write("**Top gaps:** " + ", ".join(summary["top_gaps"]))
+    progress = summary.get("roadmap_progress") or {}
+    if progress.get("total"):
+        st.progress(progress.get("percent", 0) / 100,
+                    text=f"Roadmap: {progress.get('completed', 0)}/{progress.get('total', 0)} done")
+    else:
+        st.caption("No roadmap yet — generate one from the Roadmap page.")
 with right:
-
-    st.subheader(
-        "🛠 Tech Stack"
-    )
-
-    st.write(
-        """
-        • Python
-
-        • FastAPI
-
-        • Streamlit
-
-        • REST APIs
-
-        • Pydantic
-
-        • Resume Intelligence
-        """
-    )
+    st.subheader("🕓 Recent Twin activity")
+    events = summary.get("recent_events", [])
+    if not events:
+        st.caption("No activity yet. Upload a resume or chat to get started.")
+    for event in events[:6]:
+        st.write(f"- `{event.get('type')}` — {str(event.get('data'))[:100]}")
 
 st.divider()
-
-st.markdown(
-    """
-    <div class="footer">
-        SkillTwin AI v1.0 • AI Career Growth Companion
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+st.caption("SkillTwin AI v2.0 • Use the sidebar pages: Home, Chat, Profile, Resume, Roadmap, Runtime.")

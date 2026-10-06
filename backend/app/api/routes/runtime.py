@@ -1,56 +1,31 @@
-from fastapi import APIRouter
+"""Agent runtime route: runs the canonical orchestrator."""
 
-from app.api.schemas.requests import (
-    RuntimeRequest
-)
+from fastapi import APIRouter, Depends
 
-from app.api.schemas.responses import (
-    RuntimeResponse
-)
+from app.agents.orchestrator import OrchestratorAgent
+from app.api.schemas.requests import RuntimeRequest
+from app.auth.dependencies import get_current_user
 
-from app.runtime.runtime_loop import (
-    RuntimeLoop
-)
+router = APIRouter(tags=["runtime"])
 
-router = APIRouter()
-
-runtime = RuntimeLoop()
+orchestrator = OrchestratorAgent()
 
 
-@router.post(
-    "/runtime",
-    response_model=RuntimeResponse
-)
-def run_runtime(
-    request: RuntimeRequest
-):
-
-    state = runtime.run(
-
-        goal=request.goal,
-
-        user_id=request.user_id
-    )
-
-    return RuntimeResponse(
-
-        status=state.status,
-
-        result={
-
-            "goal":
-            state.goal,
-
-            "iterations":
-            state.iteration_count,
-
-            "completed_tasks":
-            state.completed_tasks,
-
-            "reflection":
-            state.reflection_results,
-
-            "observations":
-            state.observations
-        }
-    )
+@router.post("/runtime")
+def run_runtime(payload: RuntimeRequest, user: dict = Depends(get_current_user)):
+    state = orchestrator.run(user["id"], goal=payload.goal)
+    return {
+        "status": state.status,
+        "result": {
+            "goal": state.goal,
+            "observations": state.observations,
+            "plan": state.plan.model_dump(),
+            "completed_steps": state.completed_steps,
+            "gaps": state.gaps,
+            "roadmap": state.roadmap,
+            "recommendations": state.recommendations,
+            "research": state.research,
+            "reflection": state.reflection,
+            "summary": state.summary,
+        },
+    }

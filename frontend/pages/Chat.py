@@ -1,167 +1,52 @@
+"""Chat: Twin-aware career coaching with persistent sessions."""
+
 import streamlit as st
 
-from services.api import (
-    chat
-)
+from components.header import render_header, require_auth, show_api_error
+from services.api import ApiError, chat, chat_sessions, session_messages
 
-st.set_page_config(
-    page_title="AI Career Coach",
-    page_icon="💬",
-    layout="wide"
-)
+st.set_page_config(page_title="AI Career Coach", page_icon="💬", layout="wide")
+render_header("💬 AI Career Coach", "Grounded in your Twin, gaps, memory and progress.")
+token, user = require_auth()
 
-# ======================
-# HEADER
-# ======================
+try:
+    sessions = chat_sessions(token).get("sessions", [])
+except ApiError as exc:
+    show_api_error(exc)
+    st.stop()
 
-header_col1, header_col2 = st.columns(
-    [1, 4]
-)
+options = {"New conversation": None}
+for session in sessions:
+    label = (session.get("summary") or session["id"][:8])[:60] or session["id"][:8]
+    options[f"{label} ({session.get('updated_at', '')[:10]})"] = session["id"]
+choice = st.selectbox("Conversation", list(options.keys()))
+active_session = options[choice]
 
-with header_col1:
+history = []
+if active_session:
+    try:
+        history = session_messages(token, active_session).get("messages", [])
+    except ApiError as exc:
+        show_api_error(exc)
 
-    st.image(
-        "assets/logo.png",
-        width=120
-    )
+for message in history:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-with header_col2:
-
-    st.title(
-        "💬 AI Career Coach"
-    )
-
-    st.caption(
-        "Get personalized career guidance, internship advice, and learning recommendations."
-    )
-
-st.divider()
-
-# ======================
-# DASHBOARD METRICS
-# ======================
-
-m1, m2, m3 = st.columns(3)
-
-with m1:
-
-    st.metric(
-        "🎯 Goal",
-        "AI Internship"
-    )
-
-with m2:
-
-    st.metric(
-        "🧠 Skills",
-        "19"
-    )
-
-with m3:
-
-    st.metric(
-        "📊 Readiness",
-        "80%"
-    )
-
-st.divider()
-
-# ======================
-# SUGGESTED QUESTIONS
-# ======================
-
-st.subheader(
-    "🔥 Suggested Questions"
-)
-
-left, right = st.columns(2)
-
-with left:
-
-    st.info(
-        "How do I get an AI Internship?"
-    )
-
-    st.info(
-        "Which skills should I learn next?"
-    )
-
-with right:
-
-    st.info(
-        "What projects should I build?"
-    )
-
-    st.info(
-        "How can I improve my resume?"
-    )
-
-st.divider()
-
-# ======================
-# CHAT INPUT
-# ======================
-
-user_id = st.text_input(
-    "User ID",
-    value="user123"
-)
-
-message = st.text_area(
-    "Ask SkillTwin",
-    placeholder="How do I get an AI Internship?"
-)
-
-if st.button(
-    "Send Message",
-    use_container_width=True
-):
-
-    if message:
-
-        with st.spinner(
-            "SkillTwin is thinking..."
-        ):
-
-            response = chat(
-                user_id,
-                message
-            )
-
-        st.divider()
-
-        st.subheader(
-            "🤖 SkillTwin Response"
-        )
-
-        st.success(
-            response[
-                "response"
-            ]
-        )
-
-        st.divider()
-
-        st.subheader(
-            "📌 Next Suggested Actions"
-        )
-
-        st.info(
-            """
-            • Improve missing skills
-
-            • Build portfolio projects
-
-            • Update resume
-
-            • Apply consistently
-
-            • Track progress weekly
-            """
-        )
-
-st.divider()
-
-st.caption(
-    "SkillTwin AI v1.0 • AI Career Coach"
-)
+prompt = st.chat_input("Ask about your career, gaps, projects...")
+if prompt:
+    with st.chat_message("user"):
+        st.markdown(prompt)
+    try:
+        with st.spinner("SkillTwin is thinking..."):
+            answer = chat(token, prompt, active_session)
+        with st.chat_message("assistant"):
+            st.markdown(answer["response"])
+            if answer.get("fallback"):
+                st.caption("ℹ️ Answered from your Twin directly (AI model unavailable).")
+            for update in answer.get("twin_updates", []):
+                st.caption(f"📝 Twin updated: {update}")
+        st.session_state["_last_session"] = answer["session_id"]
+        st.rerun()
+    except ApiError as exc:
+        show_api_error(exc)

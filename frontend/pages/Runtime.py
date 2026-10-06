@@ -1,271 +1,77 @@
+"""Runtime: run the SkillTwin agent (observe → plan → act → reflect)."""
+
 import streamlit as st
 
-from services.api import (
-    run_runtime
-)
+from components.header import render_header, require_auth, show_api_error
+from services.api import ApiError, list_events, list_memory, run_runtime
 
-st.set_page_config(
-    page_title="Runtime Monitor",
-    page_icon="⚙️",
-    layout="wide"
-)
+st.set_page_config(page_title="Runtime Monitor", page_icon="⚙️", layout="wide")
+render_header("⚙️ Runtime Monitor", "Observe → Plan → Act → Reflect → maintained Twin.")
+token, user = require_auth()
 
-# ======================
-# HEADER
-# ======================
+goal = st.text_input("Goal for this agent run (optional — defaults to your Twin goal)")
+if st.button("▶ Run SkillTwin agent", use_container_width=True):
+    try:
+        with st.spinner("Agent running: observing, planning, acting, reflecting..."):
+            st.session_state["last_run"] = run_runtime(token, goal or None)
+    except ApiError as exc:
+        show_api_error(exc)
 
-header_col1, header_col2 = st.columns(
-    [1, 4]
-)
-
-with header_col1:
-
-    st.image(
-        "assets/logo.png",
-        width=120
-    )
-
-with header_col2:
-
-    st.title(
-        "⚙️ Runtime Monitor"
-    )
-
-    st.caption(
-        "Observe → Plan → Act → Reflect → Replan"
-    )
-
-st.divider()
-
-# ======================
-# DASHBOARD METRICS
-# ======================
-
-m1, m2, m3 = st.columns(3)
-
-with m1:
-
-    st.metric(
-        "🎯 Goal",
-        "AI Internship"
-    )
-
-with m2:
-
-    st.metric(
-        "🤖 Agent",
-        "Active"
-    )
-
-with m3:
-
-    st.metric(
-        "📊 Status",
-        "Ready"
-    )
-
-st.divider()
-
-# ======================
-# AGENT CONFIGURATION
-# ======================
-
-st.subheader(
-    "🚀 Agent Configuration"
-)
-
-user_id = st.text_input(
-    "User ID",
-    value="user123"
-)
-
-goal = st.text_input(
-    "Goal",
-    value="AI Internship"
-)
-
-if st.button(
-    "Run Agent",
-    use_container_width=True
-):
-
-    with st.spinner(
-        "Running SkillTwin Agent..."
-    ):
-
-        result = run_runtime(
-            user_id,
-            goal
-        )
-
-    runtime = result[
-        "result"
-    ]
-
-    completed = len(
-        runtime[
-            "completed_tasks"
-        ]
-    )
-
+run = st.session_state.get("last_run")
+if run:
+    result = run.get("result", {})
     st.divider()
-
-    # ======================
-    # EXECUTION METRICS
-    # ======================
-
     c1, c2, c3 = st.columns(3)
-
-    with c1:
-
-        st.metric(
-            "✅ Status",
-            result[
-                "status"
-            ]
-        )
-
-    with c2:
-
-        st.metric(
-            "🔄 Iterations",
-            runtime[
-                "iterations"
-            ]
-        )
-
-    with c3:
-
-        st.metric(
-            "📋 Tasks",
-            completed
-        )
-
+    c1.metric("Status", run.get("status", ""))
+    c2.metric("Steps", len(result.get("completed_steps", [])))
+    c3.metric("Reflection", f"{(result.get('reflection') or {}).get('score', 0)}/10")
+    st.success(result.get("summary", ""))
     st.divider()
-
-    # ======================
-    # TASKS
-    # ======================
-
-    st.subheader(
-        "✅ Completed Tasks"
-    )
-
-    for task in runtime[
-        "completed_tasks"
-    ]:
-
-        st.success(
-            task
-        )
-
-    st.divider()
-
-    # ======================
-    # REFLECTION
-    # ======================
-
-    st.subheader(
-        "🧠 Reflection Analysis"
-    )
-
-    reflection = runtime[
-        "reflection"
-    ]
-
-    score = 0
-
-    if isinstance(
-        reflection,
-        dict
-    ):
-
-        score = reflection.get(
-            "score",
-            0
-        )
-
-    reflection_col1, reflection_col2 = st.columns(
-        2
-    )
-
-    with reflection_col1:
-
-        st.metric(
-            "Reflection Score",
-            f"{score}/10"
-        )
-
-        st.progress(
-            score / 10
-        )
-
-    with reflection_col2:
-
-        if score >= 8:
-
-            st.success(
-                "Excellent Agent Performance 🚀"
-            )
-
-        elif score >= 6:
-
-            st.info(
-                "Good Agent Performance 👍"
-            )
-
-        else:
-
-            st.warning(
-                "Needs Improvement 📚"
-            )
-
-    st.json(
-        reflection
-    )
-
-    st.divider()
-
-    # ======================
-    # OBSERVATIONS
-    # ======================
-
-    st.subheader(
-        "👀 Agent Observations"
-    )
-
-    for observation in runtime[
-        "observations"
-    ]:
-
-        st.info(
-            observation
-        )
-
-    st.divider()
-
-    # ======================
-    # SUMMARY
-    # ======================
-
-    st.subheader(
-        "📈 Runtime Summary"
-    )
-
-    st.success(
-        f"""
-        Goal: {goal}
-
-        Iterations: {runtime['iterations']}
-
-        Tasks Completed: {completed}
-
-        Reflection Score: {score}/10
-        """
-    )
+    st.subheader("👀 Observations")
+    for obs in result.get("observations", []):
+        st.write(f"- {obs}")
+    st.subheader("📋 Plan & completed steps")
+    for step in (result.get("plan") or {}).get("steps", []):
+        done = "✅" if step["name"] in result.get("completed_steps", []) else "⬜"
+        st.write(f"{done} **{step['name']}** — {step.get('detail', '')} (`{step.get('agent')}`)")
+    st.subheader("🧠 Reflection")
+    reflection = result.get("reflection") or {}
+    if reflection.get("issues"):
+        st.write("**Issues:** " + "; ".join(reflection["issues"]))
+    if reflection.get("suggestions"):
+        st.write("**Suggestions:** " + "; ".join(reflection["suggestions"]))
+    if reflection.get("narrative"):
+        st.caption(reflection["narrative"])
+    research = result.get("research") or {}
+    if research.get("conclusion"):
+        st.subheader("🔍 Research")
+        st.write(research["conclusion"])
+        for fact in (research.get("evidence") or [])[:10]:
+            st.write(f"- {fact}")
 
 st.divider()
-
-st.caption(
-    "SkillTwin AI v1.0 • Autonomous Career Agent"
-)
+cols = st.columns(2)
+with cols[0]:
+    st.subheader("🧠 Long-term memory")
+    try:
+        memories = list_memory(token).get("memories", [])
+    except ApiError as exc:
+        show_api_error(exc)
+        memories = None
+    if memories is not None:
+        if not memories:
+            st.caption("Nothing remembered yet — chat, upload a resume, or run the agent.")
+        for mem in memories[:15]:
+            st.write(f"- [{mem['kind']}] {mem['content']}")
+with cols[1]:
+    st.subheader("🕓 Progress events")
+    try:
+        events = list_events(token).get("events", [])
+    except ApiError as exc:
+        show_api_error(exc)
+        events = None
+    if events is not None:
+        if not events:
+            st.caption("No events yet.")
+        for event in events[:15]:
+            st.write(f"- `{event['event_type']}` {str(event.get('data'))[:120]}")

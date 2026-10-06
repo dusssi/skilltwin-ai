@@ -1,70 +1,32 @@
-from app.sessions.models import (
-    Session
-)
+"""DB-backed session manager (survives restarts, isolated per user)."""
 
-from app.sessions.compressor import (
-    ContextCompressor
-)
+from app.db import memory as memory_repo
+from app.sessions.compressor import ContextCompressor
 
 
 class SessionManager:
-
     def __init__(self):
+        self.compressor = ContextCompressor()
 
-        self.sessions = {}
+    def create_session(self, user_id: str) -> dict:
+        return memory_repo.create_session(user_id)
 
-        self.compressor = (
-            ContextCompressor()
-        )
+    def get_session(self, user_id: str, session_id: str) -> dict | None:
+        return memory_repo.get_session(user_id, session_id)
 
-    def create_session(
-        self,
-        session_id: str,
-        user_id: str
-    ):
+    def list_sessions(self, user_id: str, limit: int = 20) -> list:
+        return memory_repo.list_sessions(user_id, limit=limit)
 
-        session = Session(
-            session_id=session_id,
-            user_id=user_id
-        )
+    def add_message(self, user_id: str, session_id: str, role: str, content: str) -> dict:
+        message = memory_repo.add_message(user_id, session_id, role, content)
+        messages = memory_repo.list_messages(user_id, session_id, limit=100)
+        summary = self.compressor.compress(messages)
+        memory_repo.update_session_summary(user_id, session_id, summary)
+        return message
 
-        self.sessions[
-            session_id
-        ] = session
+    def recent_messages(self, user_id: str, session_id: str, limit: int = 12) -> list:
+        messages = memory_repo.list_messages(user_id, session_id, limit=200)
+        return messages[-limit:]
 
-        return session
-
-    def get_session(
-        self,
-        session_id: str
-    ):
-
-        return self.sessions.get(
-            session_id
-        )
-
-    def add_message(
-        self,
-        session_id: str,
-        message: str
-    ):
-
-        session = self.get_session(
-            session_id
-        )
-
-        if session:
-
-            session.messages.append(
-                message
-            )
-
-            session.summary = (
-                self.compressor.compress(
-                    session
-                )
-            )
-
-            return True
-
-        return False
+    def list_messages(self, user_id: str, session_id: str, limit: int = 50) -> list:
+        return memory_repo.list_messages(user_id, session_id, limit=limit)
